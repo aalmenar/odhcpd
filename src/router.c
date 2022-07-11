@@ -699,7 +699,8 @@ static int send_router_advert(struct interface *iface, const struct in6_addr *fr
 	iov[IOV_RA_SEARCH].iov_len = search_sz;
 
 	if (iface->pref64_length) {
-		uint16_t pref64_lifetime = lifetime < UINT16_MAX ? lifetime : UINT16_MAX;
+		/* RFC 8781 § 4.1 rounding up lifetime to multiply of 8 */
+		uint16_t pref64_lifetime = lifetime < (UINT16_MAX - 7) ? lifetime + 7 : UINT16_MAX;
 		uint8_t prefix_length_code = 0;
 
 		switch (iface->pref64_length) {
@@ -725,10 +726,6 @@ static int send_router_advert(struct interface *iface, const struct in6_addr *fr
 			syslog(LOG_WARNING, "Invalid PREF64 prefix size (%d), "
 					"using default of 96 bits!", iface->pref64_length);
 			break;
-		}
-		/* RFC 8781 § 4.1 rounding up */
-		if (pref64_lifetime % 8 != 0 && (pref64_lifetime + 7) < UINT16_MAX) {
-			pref64_lifetime += 7;
 		}
 
 		pref64_sz = sizeof(*pref64);
